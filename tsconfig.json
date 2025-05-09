@@ -1,56 +1,27 @@
 {
   "compilerOptions": {
-    // Specifies the ECMAScript version to target during compilation. 
-    // ES2017 is a good balance between modern features and broad browser compatibility.
-    "target": "ES2017",
-
-    // Defines the library files TypeScript should include.
-    // "dom" enables browser-specific APIs, "esnext" includes the latest JavaScript features.
+    "target": "ES2020",
     "lib": ["dom", "dom.iterable", "esnext"],
-
-    // Allows JavaScript files to be included in the project.
     "allowJs": true,
-
-    // Skips type checking for declaration files in node_modules.
     "skipLibCheck": true,
-
-    // Enables strict type-checking rules for better code robustness.
     "strict": true,
-
-    // Prevents emitting compiled JavaScript files; useful when running TypeScript in a non-build environment.
     "noEmit": true,
-
-    // Ensures compatibility with CommonJS modules and ES modules.
     "esModuleInterop": true,
-
-    // Defines the module system being used; "esnext" allows dynamic imports and latest ECMAScript module features.
     "module": "esnext",
-
-    // Specifies how modules are resolved; "node" mimics Node.js resolution behavior.
     "moduleResolution": "node",
-
-    // Allows importing JSON files directly into TypeScript files.
     "resolveJsonModule": true,
-
-    // Ensures that each file behaves as its own isolated module.
     "isolatedModules": true,
-
-    // Defines the JSX mode for React applications. "preserve" keeps JSX syntax until transformed by Babel or another compiler.
     "jsx": "preserve",
-
-    // Enables incremental compilation, which speeds up TypeScript builds by caching previous results.
     "incremental": true,
-
-    // Defines path aliases, allowing shorter imports.
-    // Example: Instead of `import component from '../src/utils'`, you can use `import component from '@/utils'`.
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"] // Adjust if your structure is different or remove if unnecessary.
+      "@components/*": ["components/*"],
+      "@utils/*": ["utils/*"],
+      "@lib/*": ["lib/*"],
+      "@models/*": ["models/*"],
+      "@/*": ["src/*"]
     }
   },
-  
-  // Specifies files and folders that should be included in TypeScript compilation.
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
-
-  // Defines folders/files that should be excluded from TypeScript compilation.
+  "include": ["next-env.d.ts", "src", "**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules"]
 }

@@ -1,4 +1,3 @@
-// src/pages/create-post.tsx
 import { useState } from "react";
 import Head from "next/head";
 import Navbar from "@/components/Navbar";
@@ -7,21 +6,21 @@ import { useRouter } from "next/router";
 export default function CreatePost() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [platform, setPlatform] = useState("facebook"); // ✅ Default platform
-  const [scheduledAt, setScheduledAt] = useState(""); // ✅ New scheduled post field
-  const [error, setError] = useState("");
+  const [platform, setPlatform] = useState("facebook");
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  /* ===========================
-     ✅ Handle Form Submission
-     =========================== */
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+
+  /* ✅ Handle Form Submission */
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError("");
+    setError(null);
 
     // ✅ Validate fields before submission
-    if (!title || !content || !platform || !scheduledAt) {
+    if (!title.trim() || !content.trim() || !platform || !scheduledAt) {
       setError("Title, content, platform, and scheduled date/time are required.");
       return;
     }
@@ -38,16 +37,16 @@ export default function CreatePost() {
 
       // ✅ Prepare post data
       const postData = {
-        title,
-        content,
+        title: title.trim(),
+        content: content.trim(),
         platform,
         scheduledAt: new Date(scheduledAt).toISOString(),
       };
 
-      console.log("🔍 Sending POST request with:", postData);
+      console.log("🛠️ DEBUG: Sending POST request with:", postData);
 
       // ✅ Send API request
-      const res = await fetch("http://localhost:5000/api/posts", {
+      const res = await fetch(`${API_URL}/posts`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -56,29 +55,21 @@ export default function CreatePost() {
         body: JSON.stringify(postData),
       });
 
-      console.log("🔍 HTTP Status Code:", res.status);
-
+      console.log("🛠️ DEBUG: HTTP Status Code:", res.status);
       const data = await res.json();
-      console.log("🔍 API Response:", data);
+      console.log("🛠️ DEBUG: API Response:", data);
 
-      // ✅ Ensure API returns success before redirecting
-      if (res.ok && data.post) {
-        console.log("✅ Post successfully created:", data.post);
-        router.push("/dashboard"); // ✅ Redirect **only after confirming success**
-      } else {
-        console.error("❌ API Error:", data.message);
-        setError(data.message || "Failed to create post.");
-      }
-    } catch (error) {
+      if (!res.ok) throw new Error(data.message || "Failed to create post.");
+
+      console.log("✅ Post successfully created:", data.post);
+      router.push("/dashboard");
+    } catch (error: any) {
       console.error("❌ Error creating post:", error);
-      setError("Something went wrong, please try again later.");
+      setError(error.message || "Something went wrong, please try again later.");
     } finally {
       setLoading(false);
     }
   };
-  /* ===========================
-     🔚 End of handleSubmit
-     =========================== */
 
   return (
     <>
@@ -91,9 +82,7 @@ export default function CreatePost() {
         <h1>Create a New Post</h1>
         {error && <p style={{ color: "red" }}>{error}</p>}
 
-        {/* ===========================
-            ✅ Post Creation Form
-            =========================== */}
+        {/* ✅ Post Creation Form */}
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: "1rem" }}>
             <label htmlFor="title">Title</label>
@@ -156,9 +145,6 @@ export default function CreatePost() {
             {loading ? "Creating..." : "Create Post"}
           </button>
         </form>
-        {/* ===========================
-            🔚 End of Post Creation Form
-            =========================== */}
       </main>
     </>
   );

@@ -1,29 +1,30 @@
-import Head from 'next/head';
-import Link from 'next/link';
+import Head from "next/head";
+import Link from "next/link";
 
 export default function Home() {
   return (
     <>
-      {/* Set head info for SEO and browser tab */}
+      {/* ✅ SEO Metadata */}
       <Head>
         <title>Social Scheduler - Home</title>
         <meta name="description" content="Welcome to Social Scheduler" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
-      {/* Main landing content */}
-      <main style={{ textAlign: 'center', padding: '2rem' }}>
+
+      {/* ✅ Main Landing Page */}
+      <main style={{ textAlign: "center", padding: "2rem" }}>
         <h1>Welcome to Social Scheduler</h1>
         <p>Let's start building your app 🚀</p>
-        {/* Navigation links: Using legacyBehavior so that nested <a> tags work properly */}
-        <div style={{ marginTop: '1rem' }}>
-          <Link legacyBehavior href="/signup">
-            <a>
-              <button style={{ marginRight: '1rem', padding: '0.5rem 1rem' }}>Sign Up</button>
-            </a>
+
+        {/* ✅ Improved Navigation Buttons */}
+        <div style={{ marginTop: "1rem" }}>
+          <Link href="/signup">
+            <button style={{ marginRight: "1rem", padding: "0.5rem 1rem", cursor: "pointer" }}>
+              Sign Up
+            </button>
           </Link>
-          <Link legacyBehavior href="/login">
-            <a>
-              <button style={{ padding: '0.5rem 1rem' }}>Login</button>
-            </a>
+          <Link href="/login">
+            <button style={{ padding: "0.5rem 1rem", cursor: "pointer" }}>Login</button>
           </Link>
         </div>
       </main>

@@ -1,18 +1,21 @@
-import { NextConfig } from "next";
 import path from "path";
+import { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+
+  // Expose NEXT_PUBLIC_API_URL to both client and server
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api",
+  },
+
+  // Webpack alias for resolving "@"
   webpack(config) {
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
-      '@': path.resolve(__dirname, 'client/src'), // Alias for "@" resolving to the /src folder
+      "@": path.resolve(__dirname, "client/src"),
     };
     return config;
-  },
-  // Expose NEXT_PUBLIC_API_URL to both client and server code.
-  env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
 };
 

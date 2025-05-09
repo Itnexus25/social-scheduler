@@ -7,21 +7,27 @@ export default function EditPost() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [platform, setPlatform] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { id } = router.query; // ✅ Get post ID from URL
 
-  /* ===========================
-     ✅ Fetch Post Details
-     =========================== */
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+
+  /* ✅ Fetch Post Details */
   useEffect(() => {
-    if (!id) return; // ✅ Prevent fetching if ID is missing
+    if (!id) return;
 
     const fetchPost = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`http://localhost:5000/api/posts/${id}`, {
+        if (!token) {
+          setError("Authentication failed. Please log in again.");
+          router.push("/login");
+          return;
+        }
+
+        const res = await fetch(`${API_URL}/posts/${id}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -30,32 +36,26 @@ export default function EditPost() {
         });
 
         const data = await res.json();
-        console.log("🔍 Fetched post:", data);
+        if (!res.ok) throw new Error(data.error || "Failed to fetch post.");
 
-        if (res.ok && data.post) {
-          setTitle(data.post.title);
-          setContent(data.post.content);
-          setPlatform(data.post.platform);
-        } else {
-          setError(data.message || "Failed to fetch post.");
-        }
-      } catch (error) {
+        setTitle(data.post.title);
+        setContent(data.post.content);
+        setPlatform(data.post.platform);
+      } catch (error: any) {
         console.error("❌ Error fetching post:", error);
-        setError("Something went wrong.");
+        setError(error.message || "Something went wrong.");
       }
     };
 
     fetchPost();
   }, [id]);
 
-  /* ===========================
-     ✅ Handle Post Update
-     =========================== */
+  /* ✅ Handle Post Update */
   const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError("");
+    setError(null);
 
-    if (!title || !content || !platform) {
+    if (!title.trim() || !content.trim() || !platform) {
       setError("Title, content, and platform are required.");
       return;
     }
@@ -63,11 +63,13 @@ export default function EditPost() {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Authentication failed. Please log in again.");
+        return;
+      }
 
-      const postData = { title, content, platform };
-      console.log("🔍 Updating post with:", postData);
-
-      const res = await fetch(`http://localhost:5000/api/posts/${id}`, {
+      const postData = { title: title.trim(), content: content.trim(), platform };
+      const res = await fetch(`${API_URL}/posts/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -77,17 +79,12 @@ export default function EditPost() {
       });
 
       const data = await res.json();
-      console.log("🔍 API Response:", data);
+      if (!res.ok) throw new Error(data.error || "Failed to update post.");
 
-      if (res.ok && data.post) {
-        console.log("✅ Post updated successfully:", data.post);
-        router.push("/dashboard"); // ✅ Redirect after successful update
-      } else {
-        setError(data.message || "Failed to update post.");
-      }
-    } catch (error) {
+      router.push("/dashboard");
+    } catch (error: any) {
       console.error("❌ Error updating post:", error);
-      setError("Something went wrong, please try again later.");
+      setError(error.message || "Something went wrong, please try again later.");
     } finally {
       setLoading(false);
     }
@@ -97,7 +94,6 @@ export default function EditPost() {
     <>
       <Head>
         <title>Edit Post - Social Scheduler</title>
-        <meta name="description" content="Edit an existing post" />
       </Head>
       <Navbar />
       <main style={{ padding: "2rem", maxWidth: "400px", margin: "0 auto" }}>

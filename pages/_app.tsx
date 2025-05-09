@@ -1,10 +1,22 @@
-import { AppProps } from 'next/app';
-import Login from '@/pages/login'; // ✅ Updated to lowercase
-import Signup from '@/pages/signup';
-import Home from '@/pages/home';
+import type { AppProps } from "next/app";
+import Head from "next/head";
+import { useEffect } from "react";
+import "@/styles/globals.css"; // ✅ Ensure global styles are applied
 
 function MyApp({ Component, pageProps }: AppProps) {
-  return <Component {...pageProps} />;
+  useEffect(() => {
+    console.log("🔄 App Mounted: Ensuring global styles are loaded.");
+  }, []);
+
+  return (
+    <>
+      <Head>
+        <title>Social Scheduler</title>
+        <meta name="description" content="Manage your social posts easily" />
+      </Head>
+      <Component {...pageProps} />
+    </>
+  );
 }
 
 export default MyApp;

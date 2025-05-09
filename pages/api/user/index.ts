@@ -1,44 +1,42 @@
-// ==================================================================
-// ✅ Step 1: Import Required Modules
-// ==================================================================
-import type { NextApiRequest, NextApiResponse } from "next";
-import dbConnect from "../../../lib/dbConnect"; // ✅ Correct path
-import User from "../../../models/User"; // ✅ Correct path
+// pages/api/users/index.ts
 
-// Debugging MongoDB connection string
-console.log("🛠️ DEBUG: process.env.MONGODB_URI =", process.env.MONGODB_URI);
+import type { NextApiRequest, NextApiResponse } from "next";
+import dbConnect from "../../../lib/dbConnect";
+import User from "../../../models/User";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    // ✅ Verify MongoDB URI is loaded
+    // ✅ Ensure MongoDB connection exists before proceeding
     if (!process.env.MONGODB_URI) {
-      console.error("❌ ERROR: MONGODB_URI is missing in .env.local");
-      return res.status(500).json({ success: false, error: "MONGODB_URI is undefined" });
+      console.error("❌ ERROR: Missing MONGODB_URI in environment variables");
+      return res.status(500).json({ success: false, error: "Server misconfiguration: MONGODB_URI missing." });
     }
 
-    // ✅ Establish database connection
-    console.log("🔄 Attempting database connection...");
+    console.log("🔄 Connecting to database...");
     await dbConnect();
     console.log("✅ Database connected successfully!");
 
     if (req.method === "GET") {
-      console.log("🔍 Fetching all users...");
+      console.log("🔍 Fetching users...");
       
-      // ✅ Retrieve all users, optimized query with .lean()
-      const users = await User.find({}, "_id name email").lean();
-
+      // ✅ Retrieve users with improved select criteria; lean() for performance
+      const users = await User.find({}, "name email createdAt").lean();
+      
       if (!users.length) {
-        console.warn("⚠️ WARNING: No users found in the database.");
+        console.warn("⚠️ No users found.");
+        return res.status(404).json({ success: false, message: "No users found in the database." });
       }
 
-      console.log(`✅ SUCCESS: Retrieved ${users.length} users`);
+      console.log(`✅ Retrieved ${users.length} users`);
       return res.status(200).json({ success: true, users });
-    } else {
-      res.setHeader("Allow", ["GET"]);
-      return res.status(405).json({ success: false, error: `Method ${req.method} not allowed.` });
     }
-  } catch (error) {
-    console.error("❌ ERROR: Server issue while retrieving users:", error);
-    return res.status(500).json({ success: false, error: "Internal server error." });
+
+    // ✅ Standardize error response for unsupported methods
+    res.setHeader("Allow", ["GET"]);
+    return res.status(405).json({ success: false, error: `Method ${req.method} Not Allowed.` });
+    
+  } catch (error: any) {
+    console.error("❌ Server error in /api/users:", error);
+    return res.status(500).json({ success: false, error: "Internal server error. Please try again later." });
   }
 }
