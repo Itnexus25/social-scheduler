@@ -7,6 +7,8 @@
     "start": "next start"
   },
   "dependencies": {
+    "@clerk/clerk-sdk-node": "^5.1.6",
+    "@clerk/nextjs": "^6.19.2",
     "axios": "^1.9.0",
     "bcryptjs": "^3.0.2",
     "dotenv": "^16.5.0",
@@ -14,7 +16,7 @@
     "jwt-decode": "^4.0.0",
     "mongodb": "^6.16.0",
     "mongoose": "^8.13.3",
-    "next": "latest",
+    "next": "^15.3.2",
     "react": "latest",
     "react-dom": "latest"
   },
