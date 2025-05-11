@@ -1,7 +1,8 @@
 // pages/api/test.ts
 import type { NextApiRequest, NextApiResponse } from "next";
+import { auth } from "@clerk/nextjs/server";
 
-// Force the route to run in the Node.js runtime and always dynamically load on the server.
+// Enforce a full server‑side execution:
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -10,8 +11,7 @@ export default async function handler(
   res: NextApiResponse
 ) {
   try {
-    // Lazily load the Clerk server module using require, so it's only pulled in at runtime.
-    const { auth } = require("@clerk/nextjs/server");
+    // Use the statically imported auth, which is only available on the server.
     const { userId } = auth(req);
     console.log("auth() output in API route:", userId);
 
@@ -21,6 +21,8 @@ export default async function handler(
     });
   } catch (error) {
     console.error("Error in Clerk auth:", error);
-    res.status(500).json({ message: "Server error processing authentication" });
+    res
+      .status(500)
+      .json({ message: "Server error processing authentication" });
   }
 }

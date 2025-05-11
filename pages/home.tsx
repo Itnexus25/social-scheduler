@@ -18,13 +18,34 @@ export default function Home() {
 
         {/* ✅ Improved Navigation Buttons */}
         <div style={{ marginTop: "1rem" }}>
-          <Link href="/signup">
-            <button style={{ marginRight: "1rem", padding: "0.5rem 1rem", cursor: "pointer" }}>
+          <Link href="/sign-up" passHref>
+            <a
+              style={{
+                marginRight: "1rem",
+                padding: "0.5rem 1rem",
+                background: "#0070f3",
+                color: "#fff",
+                borderRadius: "4px",
+                textDecoration: "none",
+                cursor: "pointer",
+              }}
+            >
               Sign Up
-            </button>
+            </a>
           </Link>
-          <Link href="/login">
-            <button style={{ padding: "0.5rem 1rem", cursor: "pointer" }}>Login</button>
+          <Link href="/login" passHref>
+            <a
+              style={{
+                padding: "0.5rem 1rem",
+                background: "#0070f3",
+                color: "#fff",
+                borderRadius: "4px",
+                textDecoration: "none",
+                cursor: "pointer",
+              }}
+            >
+              Login
+            </a>
           </Link>
         </div>
       </main>
