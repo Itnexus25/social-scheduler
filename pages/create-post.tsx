@@ -1,53 +1,51 @@
-import { useState } from "react";
+// pages/create-post.tsx
+import { useState, useEffect } from "react";
 import Head from "next/head";
-import Navbar from "@/components/Navbar";
+import Navbar from "@components/Navbar";
 import { useRouter } from "next/router";
+import { useAuth } from "@clerk/nextjs";
 
 export default function CreatePost() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  // Default platform is now Facebook.
   const [platform, setPlatform] = useState("facebook");
   const [scheduledAt, setScheduledAt] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { getToken } = useAuth();
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
-
-  /* ✅ Handle Form Submission */
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError(null);
-
-    // ✅ Validate fields before submission
-    if (!title.trim() || !content.trim() || !platform || !scheduledAt) {
-      setError("Title, content, platform, and scheduled date/time are required.");
-      return;
+  // Build the full API URL using window.location.origin.
+  // This ensures we’re using the correct domain in your workspace.
+  const [apiUrl, setApiUrl] = useState("");
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setApiUrl(`${window.location.origin}/api/posts`);
     }
+  }, []);
 
+  // Generic function to send a POST request.
+  const sendPostRequest = async (postData: any) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-
+      const token = await getToken();
       if (!token) {
         setError("User authentication failed. Please log in again.");
         router.push("/login");
         return;
       }
 
-      // ✅ Prepare post data
-      const postData = {
-        title: title.trim(),
-        content: content.trim(),
-        platform,
-        scheduledAt: new Date(scheduledAt).toISOString(),
-      };
+      // Use the dynamically built URL; if not set, fall back to the relative URL.
+      const endpoint = apiUrl || "/api/posts";
 
-      console.log("🛠️ DEBUG: Sending POST request with:", postData);
+      console.log("Sending POST request to", endpoint);
+      console.log("Post Data:", postData);
 
-      // ✅ Send API request
-      const res = await fetch(`${API_URL}/posts`, {
+      const res = await fetch(endpoint, {
         method: "POST",
+        // Ensure credentials (cookies) are sent. This is critical for Clerk's middleware.
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -55,20 +53,61 @@ export default function CreatePost() {
         body: JSON.stringify(postData),
       });
 
-      console.log("🛠️ DEBUG: HTTP Status Code:", res.status);
+      if (!res.ok) {
+        console.error("Response status:", res.status, res.statusText);
+        const errorText = await res.text();
+        throw new Error(errorText || "Failed to create post.");
+      }
+
       const data = await res.json();
-      console.log("🛠️ DEBUG: API Response:", data);
-
-      if (!res.ok) throw new Error(data.message || "Failed to create post.");
-
-      console.log("✅ Post successfully created:", data.post);
+      console.log("API Response:", data);
       router.push("/dashboard");
-    } catch (error: any) {
-      console.error("❌ Error creating post:", error);
-      setError(error.message || "Something went wrong, please try again later.");
+    } catch (err: any) {
+      console.error("Error creating post:", err);
+      setError(err.message || "Something went wrong, please try again later.");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle scheduled post submission.
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!title.trim() || !content.trim() || !platform || !scheduledAt) {
+      setError("Title, content, platform, and scheduled date/time are required.");
+      return;
+    }
+
+    const postData = {
+      title: title.trim(),
+      content: content.trim(),
+      platform,
+      scheduledAt: new Date(scheduledAt).toISOString(),
+    };
+
+    await sendPostRequest(postData);
+  };
+
+  // Handle immediate (post now) submission.
+  const handleImmediatePost = async () => {
+    setError(null);
+
+    if (!title.trim() || !content.trim() || !platform) {
+      setError("Title, content, and platform are required.");
+      return;
+    }
+
+    const postData = {
+      title: title.trim(),
+      content: content.trim(),
+      platform,
+      // Setting the scheduled time to now.
+      scheduledAt: new Date().toISOString(),
+    };
+
+    await sendPostRequest(postData);
   };
 
   return (
@@ -81,8 +120,6 @@ export default function CreatePost() {
       <main style={{ padding: "2rem", maxWidth: "400px", margin: "0 auto" }}>
         <h1>Create a New Post</h1>
         {error && <p style={{ color: "red" }}>{error}</p>}
-
-        {/* ✅ Post Creation Form */}
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: "1rem" }}>
             <label htmlFor="title">Title</label>
@@ -115,9 +152,9 @@ export default function CreatePost() {
               required
             >
               <option value="facebook">Facebook</option>
-              <option value="twitter">Twitter</option>
               <option value="instagram">Instagram</option>
-              <option value="linkedin">LinkedIn</option>
+              <option value="youtube">YouTube</option>
+              <option value="tiktok">TikTok</option>
             </select>
           </div>
           <div style={{ marginBottom: "1rem" }}>
@@ -139,10 +176,25 @@ export default function CreatePost() {
               backgroundColor: "#0070f3",
               color: "white",
               borderRadius: "4px",
+              marginBottom: "0.5rem",
             }}
             disabled={loading}
           >
             {loading ? "Creating..." : "Create Post"}
+          </button>
+          <button
+            type="button"
+            onClick={handleImmediatePost}
+            style={{
+              width: "100%",
+              padding: ".75rem",
+              backgroundColor: "#28a745",
+              color: "white",
+              borderRadius: "4px",
+            }}
+            disabled={loading}
+          >
+            {loading ? "Posting Now..." : "Post Now"}
           </button>
         </form>
       </main>

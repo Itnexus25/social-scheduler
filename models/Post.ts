@@ -4,10 +4,10 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface IPost extends Document {
   title: string;
   content: string;
-  platform: "facebook" | "twitter" | "instagram" | "linkedin";
+  platform: "facebook" | "instagram" | "youtube" | "tiktok";
   scheduledAt?: Date;
   isPublished: boolean;
-  user: mongoose.Types.ObjectId;
+  user: string; // Clerk userId is a string.
 }
 
 // ✅ Define the Post schema
@@ -29,7 +29,7 @@ const postSchema = new Schema<IPost>(
     platform: {
       type: String,
       required: true,
-      enum: ["facebook", "twitter", "instagram", "linkedin"], // Restricted values
+      enum: ["facebook", "instagram", "youtube", "tiktok"], // Allowed platforms
     },
     scheduledAt: {
       type: Date,
@@ -37,18 +37,19 @@ const postSchema = new Schema<IPost>(
     },
     isPublished: {
       type: Boolean,
-      default: false, // Defaults to unpublished state
+      default: false, // Defaults to an unpublished state
     },
     user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // ✅ Reference to the User model
+      type: String, // Changed from ObjectId to string to match Clerk's user id type.
       required: true,
     },
   },
-  { timestamps: true } // ✅ Automatically adds createdAt and updatedAt fields
+  {
+    timestamps: true, // Automatically adds createdAt and updatedAt fields.
+  }
 );
 
-// ✅ Prevent duplicate model registration during hot reloads in Next.js
+// ✅ Prevent duplicate model registration during hot reloads in Next.js.
 const Post = mongoose.models.Post || mongoose.model<IPost>("Post", postSchema);
 
 export default Post;

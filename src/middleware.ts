@@ -1,15 +1,15 @@
 // src/middleware.ts
-import { clerkMiddleware } from "@clerk/nextjs";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-console.log("Loading Clerk middleware from src");
+console.log("✅ Loading Clerk middleware from src");
 
-// Use the default Clerk middleware without a custom callback for simplicity.
+// Apply Clerk's middleware to every route.
 export default clerkMiddleware();
 
+// Use a broad matcher to guarantee that every request (including API routes) is processed.
+// Once confirmed, you can restrict this matcher if needed.
 export const config = {
-  // This matcher runs on all routes except those starting with /_next, /api, /static,
-  // or any paths containing a dot (e.g. requests for files like .css, .js, etc.)
-  matcher: "/((?!_next/|api/|static/|.*\\..*).*)",
+  matcher: "/(.*)",
 };
