@@ -1,10 +1,21 @@
 // pages/create-post.tsx
 import { useRouter } from "next/router";
 import Head from "next/head";
-import { useState, ChangeEvent, FormEvent } from "react";
+import { useState, ChangeEvent, FormEvent, useEffect } from "react";
+import { useUser } from "@clerk/nextjs";
+import Navbar from "@/components/Navbar";
 
 export default function CreatePost() {
   const router = useRouter();
+  const { isLoaded, isSignedIn, user } = useUser();
+
+  // Redirect non-authenticated users to sign-in.
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push("/sign-in");
+    }
+  }, [isLoaded, isSignedIn, router]);
+
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [platform, setPlatform] = useState("");
@@ -32,14 +43,15 @@ export default function CreatePost() {
     }
   };
 
-  // Function to submit the post.
+  // Function to submit post.
   // If overrideScheduledAt is given, it overrides scheduledAt.
   const submitPost = async (overrideScheduledAt?: string) => {
     setError(null);
     setUploading(true);
     const scheduledValue = overrideScheduledAt || scheduledAt;
+    const userHeader = JSON.stringify({ id: user?.id });
 
-    // If no media is attached, send JSON.
+    // If no media is attached, send JSON payload.
     if (!media) {
       const payload = {
         title,
@@ -50,7 +62,10 @@ export default function CreatePost() {
       try {
         const res = await fetch("/api/posts", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-user": userHeader,
+          },
           body: JSON.stringify(payload),
         });
         if (!res.ok) {
@@ -63,16 +78,19 @@ export default function CreatePost() {
       }
       setUploading(false);
     } else {
-      // When media is attached, send data as multipart/form-data.
+      // When media is attached, send FormData.
       const formData = new FormData();
       formData.append("title", title);
       formData.append("content", content);
       formData.append("platform", platform);
       formData.append("scheduledAt", scheduledValue);
       formData.append("media", media);
+
       try {
         const res = await fetch("/api/posts", {
           method: "POST",
+          // Note: Do not manually set Content-Type here.
+          headers: { "x-user": userHeader },
           body: formData,
         });
         if (!res.ok) {
@@ -87,13 +105,13 @@ export default function CreatePost() {
     }
   };
 
-  // Handler for scheduling a post.
+  // Handler for scheduling post.
   const handleSchedulePost = async (e: FormEvent) => {
     e.preventDefault();
     await submitPost();
   };
 
-  // Handler for posting immediately (overrides scheduledAt with current timestamp).
+  // Handler for posting immediately (overriding scheduledAt with current timestamp).
   const handlePostNow = async (e: FormEvent) => {
     e.preventDefault();
     const now = new Date().toISOString();
@@ -106,6 +124,7 @@ export default function CreatePost() {
         <title>Create Post - Social Scheduler</title>
         <meta name="description" content="Create a new post" />
       </Head>
+      <Navbar />
       <div
         style={{
           backgroundColor: "#000",
@@ -204,7 +223,7 @@ export default function CreatePost() {
             />
           </div>
 
-          {/* Media (Image/Video) Upload */}
+          {/* Media Upload */}
           <div style={{ marginBottom: "1rem" }}>
             <label htmlFor="media">Upload Image/Video (optional):</label>
             <br />
@@ -239,7 +258,7 @@ export default function CreatePost() {
             </p>
           )}
 
-          {/* Two buttons: one for scheduling and one for posting now */}
+          {/* Action Buttons */}
           <div style={{ display: "flex", gap: "1rem" }}>
             <button
               type="button"
@@ -259,6 +278,15 @@ export default function CreatePost() {
             </button>
           </div>
         </form>
+        {/* Optionally remove the extra Home button if your Navbar already contains navigation */}
+        {/* <div style={{ marginTop: "2rem" }}>
+          <button
+            onClick={() => router.push("/dashboard")}
+            style={{ ...buttonStyle, background: "#28a745" }}
+          >
+            Home
+          </button>
+        </div> */}
       </div>
     </>
   );

@@ -8,9 +8,10 @@ import Navbar from '../src/components/Navbar';
 interface Post {
   _id: string;
   title: string;
-  content: string;
+  content?: string; // content is optional
   scheduledAt: string;
   createdAt: string;
+  media?: string; // expects a full Cloudinary URL if available
 }
 
 interface DashboardProps {
@@ -20,6 +21,9 @@ interface DashboardProps {
 const Dashboard: NextPage<DashboardProps> = ({ posts }) => {
   const router = useRouter();
   const { user } = useUser();
+
+  // Use your public API URL or fallback to localhost.
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
 
   const buttonStyle: React.CSSProperties = {
     padding: '0.5rem 1rem',
@@ -33,7 +37,28 @@ const Dashboard: NextPage<DashboardProps> = ({ posts }) => {
   };
 
   const handleDelete = async (postId: string) => {
-    console.log('Delete post', postId);
+    if (!confirm("Are you sure you want to delete this post?")) return;
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (user) {
+        headers["x-user"] = JSON.stringify({
+          id: user.id,
+          role: user.publicMetadata?.role || 'user',
+        });
+      }
+      const res = await fetch(`${API_URL}/posts/${postId}`, {
+        method: 'DELETE',
+        headers,
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Failed to delete post.");
+      }
+      router.push("/dashboard");
+    } catch (err: any) {
+      console.error("❌ Error deleting post:", err);
+      alert(err.message || "Failed to delete post.");
+    }
   };
 
   const handleEdit = (post: Post) => {
@@ -65,13 +90,11 @@ const Dashboard: NextPage<DashboardProps> = ({ posts }) => {
         ) : (
           <p style={{ fontSize: '1.1rem' }}>Welcome to your dashboard!</p>
         )}
-
         <div style={{ margin: '1rem 0' }}>
           <button style={buttonStyle} onClick={() => router.push('/create-post')}>
             Create Post
           </button>
         </div>
-
         {posts && posts.length > 0 ? (
           <section>
             <h3 style={{ marginBottom: '1rem', fontSize: '1.5rem' }}>
@@ -82,6 +105,17 @@ const Dashboard: NextPage<DashboardProps> = ({ posts }) => {
                 const scheduledDate = new Date(post.scheduledAt);
                 const now = new Date();
                 const isFuture = scheduledDate.getTime() > now.getTime();
+
+                // Force the time zone to Africa/Johannesburg (SAST).
+                const formattedDate = scheduledDate.toLocaleString('en-US', {
+                  timeZone: 'Africa/Johannesburg',
+                });
+                const trimmedContent = (post.content || "").trim();
+                const trimmedTitle = (post.title || "").trim();
+
+                // Debug log (check the console to see the media URL):
+                console.log(`Post "${post.title}" media URL:`, post.media);
+
                 return (
                   <li key={post._id} style={{ marginBottom: '1rem' }}>
                     <div
@@ -92,24 +126,49 @@ const Dashboard: NextPage<DashboardProps> = ({ posts }) => {
                         boxShadow: '0 2px 4px rgba(0,0,0,0.8)',
                       }}
                     >
-                      <h4 style={{ marginBottom: '0.5rem', fontSize: '1.25rem', fontWeight: 'bold', color: '#fff' }}>
+                      <h4
+                        style={{
+                          marginBottom: '0.5rem',
+                          fontSize: '1.25rem',
+                          fontWeight: 'bold',
+                          color: '#fff',
+                        }}
+                      >
                         {post.title}
                       </h4>
-                      {post.content && post.content.trim() !== post.title.trim() && (
+                      {(trimmedContent && trimmedContent !== trimmedTitle) && (
                         <p style={{ marginBottom: '0.5rem', fontSize: '1rem', color: '#ddd' }}>
                           {post.content}
                         </p>
                       )}
+                      {/* Thumbnail Preview */}
+                      {post.media && post.media.trim() !== '' ? (
+                        <div style={{ marginTop: '0.5rem' }}>
+                          <img
+                            src={`${post.media}?w=150,h=150,c_fill`}
+                            alt="Uploaded media preview"
+                            style={{ borderRadius: '4px' }}
+                            onError={(e) => console.error(`Failed to load image at ${post.media}`)}
+                          />
+                        </div>
+                      ) : (
+                        <p style={{ color: '#aaa', fontStyle: 'italic', marginTop: '0.5rem' }}>
+                          No image available
+                        </p>
+                      )}
                       <p style={{ marginBottom: '0.3rem', fontSize: '0.9rem', color: '#ccc' }}>
                         {isFuture
-                          ? `Scheduled for: ${scheduledDate.toLocaleString()}`
-                          : `Posted: ${scheduledDate.toLocaleString()}`}
+                          ? `Scheduled for: ${formattedDate}`
+                          : `Posted: ${formattedDate}`}
                       </p>
                       <div style={{ marginTop: '1rem' }}>
                         <button style={buttonStyle} onClick={() => handleEdit(post)}>
                           Edit Post
                         </button>
-                        <button style={{ ...buttonStyle, background: '#e63946' }} onClick={() => handleDelete(post._id)}>
+                        <button
+                          style={{ ...buttonStyle, background: '#e63946' }}
+                          onClick={() => handleDelete(post._id)}
+                        >
                           Delete Post
                         </button>
                       </div>
@@ -136,10 +195,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       (req.headers['x-forwarded-proto'] as string) ||
       ((req.connection as any)?.encrypted ? 'https' : 'http');
     const host = req.headers.host;
-    const cookie = req.headers.cookie || "";
-    const apiUrl = `${protocol}://${host}/api/posts`;
+    const cookie = req.headers.cookie || '';
+    // Append a cache-busting query parameter.
+    const apiUrl = `${protocol}://${host}/api/posts?cacheBust=${Date.now()}`;
     console.log('Fetching posts from:', apiUrl);
-
     const res = await fetch(apiUrl, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json', cookie },

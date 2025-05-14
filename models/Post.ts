@@ -1,6 +1,7 @@
-import mongoose, { Schema, Document } from "mongoose";
+// models/Post.ts
+import mongoose, { Schema, Document, Model } from "mongoose";
 
-// ✅ Define and export an interface for type safety
+// Define and export an interface for type safety
 export interface IPost extends Document {
   title: string;
   content: string;
@@ -10,8 +11,8 @@ export interface IPost extends Document {
   user: string; // Clerk userId is a string.
 }
 
-// ✅ Define the Post schema
-const postSchema = new Schema<IPost>(
+// Define the Post schema with the required validators and options.
+const postSchema: Schema<IPost> = new Schema(
   {
     title: {
       type: String,
@@ -24,32 +25,33 @@ const postSchema = new Schema<IPost>(
       type: String,
       required: true,
       trim: true,
-      maxlength: 2000, // Prevent oversized posts
+      maxlength: 2000, // Prevent oversized posts.
     },
     platform: {
       type: String,
       required: true,
-      enum: ["facebook", "instagram", "youtube", "tiktok"], // Allowed platforms
+      enum: ["facebook", "instagram", "youtube", "tiktok"], // Allowed platforms.
     },
     scheduledAt: {
       type: Date,
-      default: Date.now, // Defaults to now if not provided
+      default: Date.now, // Defaults to current time if not provided.
     },
     isPublished: {
       type: Boolean,
-      default: false, // Defaults to an unpublished state
+      default: false, // Defaults to an unpublished state.
     },
     user: {
-      type: String, // Changed from ObjectId to string to match Clerk's user id type.
+      type: String, // Using string to match Clerk's user id type.
       required: true,
     },
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt fields.
+    timestamps: true, // Automatically add createdAt and updatedAt fields.
   }
 );
 
-// ✅ Prevent duplicate model registration during hot reloads in Next.js.
-const Post = mongoose.models.Post || mongoose.model<IPost>("Post", postSchema);
+// Prevent duplicate model registration during hot reloads (e.g., in Next.js)
+const Post: Model<IPost> =
+  mongoose.models.Post || mongoose.model<IPost>("Post", postSchema);
 
 export default Post;
