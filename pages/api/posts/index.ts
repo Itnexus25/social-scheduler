@@ -1,106 +1,110 @@
 // pages/api/posts/index.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import dbConnect from "../../../lib/dbConnect";
-import Post from "../../../models/Post";
-import { getAuth } from "@clerk/nextjs/server";
+import formidable from "formidable";
+import getRawBody from "raw-body";
+
+// Disable Next.js's default body parsing to allow us to handle both JSON and multipart requests.
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+// In-memory store for posts (for demonstration only)
+let postsData: any[] = [];
+
+// Helper function: Wrap formidable.parse in a Promise.
+const parseForm = (req: NextApiRequest): Promise<{
+  fields: formidable.Fields;
+  files: formidable.Files;
+}> => {
+  return new Promise((resolve, reject) => {
+    const form = formidable({ multiples: false });
+    form.parse(req, (err, fields, files) => {
+      if (err) {
+        return reject(err);
+      }
+      resolve({ fields, files });
+    });
+  });
+};
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  console.log(`Received ${req.method} request on ${req.url}`);
-
-  // Handle CORS preflight requests.
-  if (req.method === "OPTIONS") {
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    // Allow requests from any origin—adjust in production if needed.
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization"
-    );
-    return res.status(200).end();
+  // Handle GET: Return all posts from the in-memory store.
+  if (req.method === "GET") {
+    // Prevent caching so that you always see the latest posts.
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(200).json({ posts: postsData });
   }
 
-  try {
-    // Connect to the database.
-    await dbConnect();
-    console.log("✅ Database connected.");
+  // Handle POST: Create a new post.
+  if (req.method === "POST") {
+    try {
+      const contentType = req.headers["content-type"] || "";
+      let newPost: any = {};
 
-    // Allow only GET and POST methods.
-    if (!["GET", "POST"].includes(req.method || "")) {
-      res.setHeader("Allow", ["GET", "POST", "OPTIONS"]);
-      console.warn(`⚠️ Method ${req.method} not allowed.`);
-      return res
-        .status(405)
-        .json({ message: `Method ${req.method} Not Allowed` });
-    }
-
-    // Retrieve the authenticated user via Clerk.
-    const { userId } = getAuth(req);
-    console.log("🔐 Clerk Authentication Debug:");
-    console.log("✅ Request headers:", req.headers);
-    console.log("✅ Extracted userId from Clerk:", userId);
-
-    if (!userId) {
-      console.warn("⛔ Clerk authentication failed. Not authorized.");
-      return res.status(401).json({ message: "Not authorized" });
-    }
-
-    if (req.method === "GET") {
-      console.log(`📡 Fetching posts for user: ${userId}`);
-      const posts = await Post.find({ user: userId }).sort({ createdAt: -1 });
-      console.log(`✅ Retrieved ${posts.length} posts for user.`);
-      return res
-        .status(200)
-        .json({ message: "Posts retrieved successfully", posts });
-    }
-
-    if (req.method === "POST") {
-      console.log(`📩 Creating new post for user: ${userId}`);
-      const { title, content, platform, scheduledAt } = req.body;
-      console.log("Request body:", req.body);
-
-      // Validate required fields.
-      if (!title || !content || !platform) {
-        console.warn("⚠️ Validation failed: Missing required fields.");
-        return res.status(400).json({
-          message: "Title, content, and platform are required.",
+      if (contentType.includes("multipart/form-data")) {
+        // Parse multipart/form-data using formidable.
+        const { fields, files } = await parseForm(req);
+        console.log("Parsed fields:", fields);
+        console.log("Parsed files:", files);
+        // Construct a new post from the parsed data.
+        newPost = {
+          ...fields,
+          media: files.media,
+          createdAt: new Date().toISOString(),
+        };
+      } else if (contentType.includes("application/json")) {
+        // Read and parse the raw JSON body.
+        const rawBody = await getRawBody(req, {
+          length: req.headers["content-length"],
+          encoding: "utf8",
         });
-      }
-
-      // Validate and parse the scheduled date/time.
-      const scheduleDate = scheduledAt ? new Date(scheduledAt) : new Date();
-      if (isNaN(scheduleDate.getTime())) {
-        console.warn(`⚠️ Invalid scheduled date/time: ${scheduledAt}`);
+        const data = JSON.parse(rawBody);
+        console.log("Received JSON data:", data);
+        newPost = { ...data, createdAt: new Date().toISOString() };
+      } else {
         return res
           .status(400)
-          .json({ message: "Invalid scheduled date/time." });
+          .json({ message: "Unsupported content type." });
       }
 
-      const newPost = new Post({
-        title: title.trim(),
-        content: content.trim(),
-        platform,
-        scheduledAt: scheduleDate,
-        user: userId,
+      // Validate required fields.
+      if (
+        !newPost.title ||
+        !newPost.content ||
+        !newPost.platform ||
+        !newPost.scheduledAt
+      ) {
+        return res
+          .status(400)
+          .json({ message: "Title, content, platform and scheduled time are required." });
+      }
+
+      // Assign a unique _id if not provided. (Use timestamp for demo.)
+      newPost._id = new Date().getTime().toString();
+
+      // Add the new post to the in-memory store.
+      postsData.push(newPost);
+      console.log("Current postsData:", postsData);
+
+      return res.status(201).json({
+        message: "Post created successfully",
+        post: newPost,
       });
-      console.log("New post document:", newPost);
-
-      const savedPost = await newPost.save();
-      console.log("✅ Post created successfully:", savedPost);
+    } catch (error: any) {
+      console.error("Server error in POST /api/posts:", error);
       return res
-        .status(201)
-        .json({ message: "Post created successfully", post: savedPost });
+        .status(500)
+        .json({ message: "Internal server error", error: error.message });
     }
-
-    // Fallback response; should not be reached.
-    return res.status(405).json({ message: "Method not allowed." });
-  } catch (error: any) {
-    console.error("❌ Server error in /api/posts:", error);
+  } else {
+    res.setHeader("Allow", ["GET", "POST"]);
     return res
-      .status(500)
-      .json({ message: "Server error", error: error.message });
+      .status(405)
+      .json({ message: `Method ${req.method} Not Allowed` });
   }
 }

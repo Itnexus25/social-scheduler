@@ -1,203 +1,265 @@
 // pages/create-post.tsx
-import { useState, useEffect } from "react";
-import Head from "next/head";
-import Navbar from "@components/Navbar";
 import { useRouter } from "next/router";
-import { useAuth } from "@clerk/nextjs";
+import Head from "next/head";
+import { useState, ChangeEvent, FormEvent } from "react";
 
 export default function CreatePost() {
+  const router = useRouter();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  // Default platform is now Facebook.
-  const [platform, setPlatform] = useState("facebook");
+  const [platform, setPlatform] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
+  const [media, setMedia] = useState<File | null>(null);
+  const [uploading, setUploading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const { getToken } = useAuth();
 
-  // Build the full API URL using window.location.origin.
-  // This ensures we’re using the correct domain in your workspace.
-  const [apiUrl, setApiUrl] = useState("");
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setApiUrl(`${window.location.origin}/api/posts`);
-    }
-  }, []);
+  // Reusable button style.
+  const buttonStyle: React.CSSProperties = {
+    padding: "0.5rem 1rem",
+    background: "#0070f3",
+    color: "#fff",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
+    fontSize: "1rem",
+    margin: "0.5rem 0",
+  };
 
-  // Generic function to send a POST request.
-  const sendPostRequest = async (postData: any) => {
-    try {
-      setLoading(true);
-      const token = await getToken();
-      if (!token) {
-        setError("User authentication failed. Please log in again.");
-        router.push("/login");
-        return;
-      }
-
-      // Use the dynamically built URL; if not set, fall back to the relative URL.
-      const endpoint = apiUrl || "/api/posts";
-
-      console.log("Sending POST request to", endpoint);
-      console.log("Post Data:", postData);
-
-      const res = await fetch(endpoint, {
-        method: "POST",
-        // Ensure credentials (cookies) are sent. This is critical for Clerk's middleware.
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(postData),
-      });
-
-      if (!res.ok) {
-        console.error("Response status:", res.status, res.statusText);
-        const errorText = await res.text();
-        throw new Error(errorText || "Failed to create post.");
-      }
-
-      const data = await res.json();
-      console.log("API Response:", data);
-      router.push("/dashboard");
-    } catch (err: any) {
-      console.error("Error creating post:", err);
-      setError(err.message || "Something went wrong, please try again later.");
-    } finally {
-      setLoading(false);
+  // Handle file input changes.
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setMedia(e.target.files[0]);
     }
   };
 
-  // Handle scheduled post submission.
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  // Function to submit the post.
+  // If overrideScheduledAt is given, it overrides scheduledAt.
+  const submitPost = async (overrideScheduledAt?: string) => {
+    setError(null);
+    setUploading(true);
+    const scheduledValue = overrideScheduledAt || scheduledAt;
+
+    // If no media is attached, send JSON.
+    if (!media) {
+      const payload = {
+        title,
+        content,
+        platform,
+        scheduledAt: scheduledValue,
+      };
+      try {
+        const res = await fetch("/api/posts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.message || "Failed to create post.");
+        }
+        router.push("/dashboard");
+      } catch (err: any) {
+        setError(err.message || "Submission failed, please try again later.");
+      }
+      setUploading(false);
+    } else {
+      // When media is attached, send data as multipart/form-data.
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("content", content);
+      formData.append("platform", platform);
+      formData.append("scheduledAt", scheduledValue);
+      formData.append("media", media);
+      try {
+        const res = await fetch("/api/posts", {
+          method: "POST",
+          body: formData,
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.message || "Failed to create post.");
+        }
+        router.push("/dashboard");
+      } catch (err: any) {
+        setError(err.message || "Submission failed, please try again later.");
+      }
+      setUploading(false);
+    }
+  };
+
+  // Handler for scheduling a post.
+  const handleSchedulePost = async (e: FormEvent) => {
     e.preventDefault();
-    setError(null);
-
-    if (!title.trim() || !content.trim() || !platform || !scheduledAt) {
-      setError("Title, content, platform, and scheduled date/time are required.");
-      return;
-    }
-
-    const postData = {
-      title: title.trim(),
-      content: content.trim(),
-      platform,
-      scheduledAt: new Date(scheduledAt).toISOString(),
-    };
-
-    await sendPostRequest(postData);
+    await submitPost();
   };
 
-  // Handle immediate (post now) submission.
-  const handleImmediatePost = async () => {
-    setError(null);
-
-    if (!title.trim() || !content.trim() || !platform) {
-      setError("Title, content, and platform are required.");
-      return;
-    }
-
-    const postData = {
-      title: title.trim(),
-      content: content.trim(),
-      platform,
-      // Setting the scheduled time to now.
-      scheduledAt: new Date().toISOString(),
-    };
-
-    await sendPostRequest(postData);
+  // Handler for posting immediately (overrides scheduledAt with current timestamp).
+  const handlePostNow = async (e: FormEvent) => {
+    e.preventDefault();
+    const now = new Date().toISOString();
+    await submitPost(now);
   };
 
   return (
     <>
       <Head>
         <title>Create Post - Social Scheduler</title>
-        <meta name="description" content="Schedule a new post" />
+        <meta name="description" content="Create a new post" />
       </Head>
-      <Navbar />
-      <main style={{ padding: "2rem", maxWidth: "400px", margin: "0 auto" }}>
-        <h1>Create a New Post</h1>
-        {error && <p style={{ color: "red" }}>{error}</p>}
-        <form onSubmit={handleSubmit}>
+      <div
+        style={{
+          backgroundColor: "#000",
+          color: "#fff",
+          minHeight: "100vh",
+          padding: "2rem",
+        }}
+      >
+        <h1 style={{ marginBottom: "1rem", fontSize: "2rem" }}>Create Post</h1>
+        <form>
+          {/* Title Input */}
           <div style={{ marginBottom: "1rem" }}>
-            <label htmlFor="title">Title</label>
+            <label htmlFor="title">Title:</label>
+            <br />
             <input
-              type="text"
               id="title"
+              type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              style={{ width: "100%", padding: ".5rem", borderRadius: "4px" }}
+              style={{
+                width: "100%",
+                padding: "0.5rem",
+                borderRadius: "4px",
+                border: "1px solid #555",
+                backgroundColor: "#222",
+                color: "#fff",
+              }}
               required
             />
           </div>
+
+          {/* Content Textarea */}
           <div style={{ marginBottom: "1rem" }}>
-            <label htmlFor="content">Content</label>
+            <label htmlFor="content">Content:</label>
+            <br />
             <textarea
               id="content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              style={{ width: "100%", padding: ".5rem", borderRadius: "4px" }}
-              required
-            />
+              style={{
+                width: "100%",
+                padding: "0.5rem",
+                borderRadius: "4px",
+                border: "1px solid #555",
+                backgroundColor: "#222",
+                color: "#fff",
+                minHeight: "120px",
+              }}
+            ></textarea>
           </div>
+
+          {/* Platform Dropdown */}
           <div style={{ marginBottom: "1rem" }}>
-            <label htmlFor="platform">Platform</label>
+            <label htmlFor="platform">Platform:</label>
+            <br />
             <select
               id="platform"
               value={platform}
               onChange={(e) => setPlatform(e.target.value)}
-              style={{ width: "100%", padding: ".5rem", borderRadius: "4px" }}
+              style={{
+                width: "100%",
+                padding: "0.5rem",
+                borderRadius: "4px",
+                border: "1px solid #555",
+                backgroundColor: "#222",
+                color: "#fff",
+              }}
               required
             >
-              <option value="facebook">Facebook</option>
-              <option value="instagram">Instagram</option>
-              <option value="youtube">YouTube</option>
-              <option value="tiktok">TikTok</option>
+              <option value="">Select Platform</option>
+              <option value="Facebook">Facebook</option>
+              <option value="Instagram">Instagram</option>
+              <option value="YouTube">YouTube</option>
+              <option value="TikTok">TikTok</option>
             </select>
           </div>
+
+          {/* Scheduled Time */}
           <div style={{ marginBottom: "1rem" }}>
-            <label htmlFor="scheduledAt">Schedule for:</label>
+            <label htmlFor="scheduledAt">Scheduled Time:</label>
+            <br />
             <input
-              type="datetime-local"
               id="scheduledAt"
+              type="datetime-local"
               value={scheduledAt}
               onChange={(e) => setScheduledAt(e.target.value)}
-              style={{ width: "100%", padding: ".5rem", borderRadius: "4px" }}
+              style={{
+                width: "100%",
+                padding: "0.5rem",
+                borderRadius: "4px",
+                border: "1px solid #555",
+                backgroundColor: "#222",
+                color: "#fff",
+              }}
               required
             />
           </div>
-          <button
-            type="submit"
-            style={{
-              width: "100%",
-              padding: ".75rem",
-              backgroundColor: "#0070f3",
-              color: "white",
-              borderRadius: "4px",
-              marginBottom: "0.5rem",
-            }}
-            disabled={loading}
-          >
-            {loading ? "Creating..." : "Create Post"}
-          </button>
-          <button
-            type="button"
-            onClick={handleImmediatePost}
-            style={{
-              width: "100%",
-              padding: ".75rem",
-              backgroundColor: "#28a745",
-              color: "white",
-              borderRadius: "4px",
-            }}
-            disabled={loading}
-          >
-            {loading ? "Posting Now..." : "Post Now"}
-          </button>
+
+          {/* Media (Image/Video) Upload */}
+          <div style={{ marginBottom: "1rem" }}>
+            <label htmlFor="media">Upload Image/Video (optional):</label>
+            <br />
+            <input
+              id="media"
+              type="file"
+              accept="image/*,video/*"
+              onChange={handleFileChange}
+              style={{ color: "#fff" }}
+            />
+            {media && (
+              <div style={{ marginTop: "0.5rem" }}>
+                <span>Selected file: {media.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setMedia(null)}
+                  style={{
+                    ...buttonStyle,
+                    background: "#e63946",
+                    marginLeft: "1rem",
+                  }}
+                >
+                  Remove File
+                </button>
+              </div>
+            )}
+          </div>
+
+          {error && (
+            <p style={{ color: "red", marginBottom: "1rem", fontSize: "1rem" }}>
+              {error}
+            </p>
+          )}
+
+          {/* Two buttons: one for scheduling and one for posting now */}
+          <div style={{ display: "flex", gap: "1rem" }}>
+            <button
+              type="button"
+              onClick={handleSchedulePost}
+              style={buttonStyle}
+              disabled={uploading}
+            >
+              {uploading ? "Submitting..." : "Schedule Post"}
+            </button>
+            <button
+              type="button"
+              onClick={handlePostNow}
+              style={buttonStyle}
+              disabled={uploading}
+            >
+              {uploading ? "Submitting..." : "Post Now"}
+            </button>
+          </div>
         </form>
-      </main>
+      </div>
     </>
   );
 }

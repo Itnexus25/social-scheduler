@@ -1,8 +1,12 @@
 // pages/index.tsx
+import React from "react";
 import Head from "next/head";
 import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
 
 export default function Home() {
+  const { isSignedIn } = useUser();
+
   return (
     <>
       <Head>
@@ -11,40 +15,112 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-      <main style={{ textAlign: "center", padding: "2rem" }}>
-        <h1>Welcome to Social Scheduler</h1>
-        <p>Let's start building your app 🚀</p>
+      <main
+        style={{
+          textAlign: "center",
+          padding: "3rem",
+          maxWidth: "800px",
+          margin: "0 auto",
+        }}
+      >
+        <h1
+          style={{
+            fontSize: "2.5rem",
+            fontWeight: "bold",
+            color: "#333",
+            marginBottom: "1rem",
+          }}
+        >
+          Welcome to Social Scheduler
+        </h1>
+        <p
+          style={{
+            fontSize: "1.2rem",
+            color: "#555",
+            marginBottom: "2rem",
+          }}
+        >
+          Effortlessly plan, schedule, and manage your social media posts.
+        </p>
 
-        {/* Navigation Buttons */}
-        <div style={{ marginTop: "1rem" }}>
-          <Link
-            href="/sign-up"
+        {/* Render links based on authentication status */}
+        {!isSignedIn ? (
+          <div
             style={{
-              marginRight: "1rem",
-              padding: "0.5rem 1rem",
-              background: "#0070f3",
-              color: "#fff",
-              borderRadius: "4px",
-              textDecoration: "none",
-              cursor: "pointer",
+              display: "flex",
+              justifyContent: "center",
+              gap: "1rem",
+              marginBottom: "2rem",
             }}
           >
-            Sign Up
-          </Link>
-          <Link
-            href="/sign-in"
+            <Link
+              href="/sign-up"
+              style={{
+                padding: "0.75rem 1.5rem",
+                backgroundColor: "#28a745",
+                color: "#fff",
+                borderRadius: "5px",
+                textDecoration: "none",
+                fontSize: "1rem",
+              }}
+            >
+              Sign Up
+            </Link>
+            <Link
+              href="/sign-in"
+              style={{
+                padding: "0.75rem 1.5rem",
+                backgroundColor: "#0070f3",
+                color: "#fff",
+                borderRadius: "5px",
+                textDecoration: "none",
+                fontSize: "1rem",
+              }}
+            >
+              Sign In
+            </Link>
+          </div>
+        ) : (
+          <div
             style={{
-              padding: "0.5rem 1rem",
-              background: "#0070f3",
-              color: "#fff",
-              borderRadius: "4px",
-              textDecoration: "none",
-              cursor: "pointer",
+              display: "flex",
+              justifyContent: "center",
+              gap: "1rem",
+              marginBottom: "2rem",
             }}
           >
-            Sign In
-          </Link>
-        </div>
+            <Link
+              href="/create-post"
+              style={{
+                padding: "0.75rem 1.5rem",
+                backgroundColor: "#0070f3",
+                color: "#fff",
+                borderRadius: "5px",
+                textDecoration: "none",
+                fontSize: "1rem",
+              }}
+            >
+              Create a Post
+            </Link>
+            <Link
+              href="/dashboard"
+              style={{
+                padding: "0.75rem 1.5rem",
+                backgroundColor: "#28a745",
+                color: "#fff",
+                borderRadius: "5px",
+                textDecoration: "none",
+                fontSize: "1rem",
+              }}
+            >
+              View Dashboard
+            </Link>
+          </div>
+        )}
+
+        <p style={{ fontSize: "1rem", color: "#777" }}>
+          Let's start building your app 🚀
+        </p>
       </main>
     </>
   );
