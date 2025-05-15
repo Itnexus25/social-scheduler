@@ -1,6 +1,6 @@
-import { withClerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 
-export default withClerkMiddleware((req, event) => {
+export default clerkMiddleware((req, event) => {
   return new Response("Middleware working!", { status: 200 });
 });
 
