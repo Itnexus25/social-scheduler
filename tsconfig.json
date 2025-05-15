@@ -21,8 +21,8 @@
     "paths": {
       "@components/*": ["src/components/*"],
       "@utils/*": ["src/utils/*"],
-      "@lib/*": ["src/lib/*"],
-      "@models/*": ["src/models/*"],
+      "@lib/*": ["lib/*"],
+      "@models/*": ["models/*"],
       "@styles/*": ["src/styles/*"],
       "@/*": ["src/*"]
     },
@@ -37,6 +37,8 @@
     "**/*.tsx",
     "next-env.d.ts",
     "src",
+    "lib",
+    "models",
     ".next/types/**/*.ts",
     "next.config.ts"
   ],
