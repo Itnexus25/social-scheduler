@@ -24,6 +24,7 @@
       "@lib/*": ["lib/*"],
       "@models/*": ["models/*"],
       "@styles/*": ["src/styles/*"],
+      "@middleware/*": ["middleware/*"],
       "@/*": ["src/*"]
     },
     "plugins": [
@@ -40,6 +41,7 @@
     "src",
     "lib",
     "models",
+    "middleware",
     ".next/types/**/*.ts",
     "next.config.ts"
   ],
