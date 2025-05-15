@@ -1,8 +1,8 @@
 // pages/api/users/[id].ts
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import dbConnect from '@/lib/dbConnect'; // Adjust the path as needed
-import User from '@/models/User'; // Adjust the path as needed
+import dbConnect from '@lib/dbConnect'; // Updated import path
+import User from '@models/User';        // Updated import path
 import mongoose from 'mongoose';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -38,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.setHeader('Allow', ['DELETE']);
         return res.status(405).json({ error: `Method ${method} not allowed.` });
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error deleting user:', error);
     return res.status(500).json({ error: 'Server error while deleting user.' });
   }
