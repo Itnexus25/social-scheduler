@@ -26,9 +26,9 @@ async function dbConnect(): Promise<mongoose.Connection> {
 
   if (!cached.promise) {
     console.log("🚀 Connecting to MongoDB...");
+    // Use non-null assertion operator (!) to tell TypeScript that MONGODB_URI is defined.
     cached.promise = mongoose
-      .connect(MONGODB_URI, {
-        // These options are now defaults in Mongoose v6+
+      .connect(MONGODB_URI!, {
         serverSelectionTimeoutMS: 10000,
         connectTimeoutMS: 10000,
       })
