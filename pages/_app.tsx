@@ -1,10 +1,15 @@
 // pages/_app.tsx
-import type { AppProps } from "next/app";
 import { ClerkProvider } from "@clerk/nextjs";
 import Head from "next/head";
 import "@/styles/globals.css";
 
-const MyApp = ({ Component, pageProps }: AppProps) => (
+const MyApp = ({
+  Component,
+  pageProps,
+}: {
+  Component: any;
+  pageProps: any;
+}) => (
   <ClerkProvider {...pageProps}>
     <Head>
       <title>Social Scheduler</title>
