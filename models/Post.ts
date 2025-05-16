@@ -9,6 +9,8 @@ export interface IPost extends Document {
   scheduledAt?: Date;
   isPublished: boolean;
   user: string; // Clerk userId is a string.
+  createdAt?: Date; // Added to match the timestamps option.
+  updatedAt?: Date; // Added to match the timestamps option.
 }
 
 // Define the Post schema with the required validators and options.
