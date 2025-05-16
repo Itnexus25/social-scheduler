@@ -1,24 +1,25 @@
 // pages/_app.tsx
-import { ClerkProvider } from "@clerk/nextjs";
+import { ClerkProvider, SignedOut, SignInButton } from "@clerk/nextjs";
 import Head from "next/head";
 import "@/styles/globals.css";
 
-type MyAppProps = {
-  Component: any;
-  pageProps: any;
-};
+function MyApp(props) {
+  // Destructure with default fallbacks in case props are missing.
+  const { Component = () => null, pageProps = {} } = props;
 
-export default function MyApp({
-  Component = () => null,
-  pageProps = {},
-}: MyAppProps) {
   return (
     <ClerkProvider {...pageProps}>
       <Head>
         <title>Social Scheduler</title>
         <meta name="description" content="Manage your social posts easily" />
       </Head>
+      {/* Optionally render sign-in UI when signed out */}
+      <SignedOut>
+        <SignInButton />
+      </SignedOut>
       <Component {...pageProps} />
     </ClerkProvider>
   );
 }
+
+export default MyApp;
