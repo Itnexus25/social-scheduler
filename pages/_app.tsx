@@ -1,15 +1,10 @@
 // pages/_app.tsx
-import "@styles/globals.css"; // This now resolves to src/styles/globals.css
-import { useEffect } from "react";
-import { ClerkProvider } from "@clerk/nextjs";
-import Head from "next/head";
-import type { AppProps } from "next/app";
+import type { AppProps } from 'next/app'
+import { ClerkProvider } from '@clerk/nextjs'
+import Head from 'next/head'
+import '@styles/globals.css'
 
 function MyApp({ Component, pageProps }: AppProps) {
-  useEffect(() => {
-    console.log("🔄 App Mounted: Global styles are loaded.");
-  }, []);
-
   return (
     <>
       <Head>
@@ -20,7 +15,7 @@ function MyApp({ Component, pageProps }: AppProps) {
         <Component {...pageProps} />
       </ClerkProvider>
     </>
-  );
+  )
 }
 
-export default MyApp;
+export default MyApp
