@@ -1,3 +1,4 @@
+// pages/api/auth/login.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -13,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
   }
 
-  // Ensure JWT_SECRET is provided
+  // Ensure JWT_SECRET is provided.
   if (!JWT_SECRET) {
     console.error("❌ Missing JWT_SECRET in environment variables");
     return res.status(500).json({ error: "Server misconfiguration: JWT_SECRET missing." });
@@ -24,12 +25,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await dbConnect();
     console.log("✅ Database connected!");
 
+    // Destructure email and password from the request body.
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required." });
     }
 
     console.log(`🔍 Fetching user: ${email}`);
+    // Use findOne to retrieve a single user object and include the password field.
     const user = await User.findOne({ email }).select("+password").lean();
     if (!user) {
       return res.status(401).json({ error: "Invalid email or password." });
@@ -48,22 +51,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       { expiresIn: "7d" }
     );
 
-    // Build a secure cookie with additional attributes when in production
+    // Build a secure cookie (with production settings if applicable).
     const isProduction = process.env.NODE_ENV === "production";
     const cookieParts = [
       `token=${token}`,
       "HttpOnly",
       "Path=/",
-      "Max-Age=604800", // 7 days
+      "Max-Age=604800", // 7 days in seconds
       isProduction ? "Secure" : "",
       isProduction ? "SameSite=Strict" : "SameSite=Lax",
     ];
     const cookie = cookieParts.filter(Boolean).join("; ");
 
-    // Set the token as an HttpOnly cookie
+    // Set the token as an HttpOnly cookie.
     res.setHeader("Set-Cookie", cookie);
 
-    // Also return the token in the JSON response
+    // Return the response along with token and user details.
     return res.status(200).json({
       message: "Login successful",
       token,
