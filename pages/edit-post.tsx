@@ -32,7 +32,6 @@ const EditPost: NextPage<EditPostProps> = ({ post }) => {
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     setSelectedFile(file);
-    // For immediate preview (optional)
     if (file) {
       setPreviewUrl(URL.createObjectURL(file));
     }
@@ -41,19 +40,16 @@ const EditPost: NextPage<EditPostProps> = ({ post }) => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    // Prepare FormData for the updated post.
     const formData = new FormData();
     formData.append('title', title);
     formData.append('content', content);
     formData.append('scheduledAt', scheduledAt);
-    // Ensure platform is always provided
     formData.append('platform', post.platform || 'facebook');
     if (selectedFile) {
       formData.append('media', selectedFile);
     }
     
     try {
-      // Create the x-user header using Clerk's user info.
       const xUserHeader = JSON.stringify({
         id: user?.id,
         role: user?.publicMetadata?.role || 'user',
@@ -62,7 +58,6 @@ const EditPost: NextPage<EditPostProps> = ({ post }) => {
       const res = await fetch(`/api/posts/${post._id}`, {
         method: 'PUT',
         body: formData,
-        // When using FormData, don't manually set Content-Type.
         headers: {
           'x-user': xUserHeader,
         },
@@ -97,7 +92,6 @@ const EditPost: NextPage<EditPostProps> = ({ post }) => {
       >
         <h1>Edit Post</h1>
         <form onSubmit={handleSubmit} encType="multipart/form-data">
-          {/* Hidden input to ensure platform is included */}
           <input type="hidden" name="platform" value={post.platform || 'facebook'} />
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem' }}>Title:</label>
@@ -176,16 +170,22 @@ const EditPost: NextPage<EditPostProps> = ({ post }) => {
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const { id } = context.query;
   await dbConnect();
-  const post = await Post.findById(id).lean();
-  if (!post) {
+  const postFromDb = await Post.findById(id).lean();
+
+  if (!postFromDb) {
     return { notFound: true };
   }
-  // Convert dates and _id to strings for JSON serialization.
-  post._id = post._id.toString();
-  post.createdAt = post.createdAt?.toISOString() || "";
-  post.scheduledAt = post.scheduledAt?.toISOString() || "";
-  post.updatedAt = post.updatedAt?.toISOString() || "";
-  return { props: { post } };
+
+  // Create a new object for serialized post data
+  const serializedPost = {
+    ...postFromDb,
+    _id: postFromDb._id.toString(),
+    createdAt: postFromDb.createdAt ? postFromDb.createdAt.toISOString() : "",
+    scheduledAt: postFromDb.scheduledAt ? postFromDb.scheduledAt.toISOString() : "",
+    updatedAt: postFromDb.updatedAt ? postFromDb.updatedAt.toISOString() : "",
+  };
+
+  return { props: { post: serializedPost } };
 };
 
 export default EditPost;
