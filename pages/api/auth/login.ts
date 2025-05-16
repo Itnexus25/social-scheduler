@@ -5,6 +5,15 @@ import jwt from "jsonwebtoken";
 import dbConnect from "../../../lib/dbConnect";
 import User from "../../../models/User";
 
+// Define an interface describing the expected User shape
+interface IUser {
+  email: string;
+  password: string;
+  role: string;
+  _id: string;
+  // Add any other User fields you need here.
+}
+
 const JWT_SECRET = process.env.JWT_SECRET;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -32,13 +41,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     console.log(`🔍 Fetching user: ${email}`);
-    // Use findOne to retrieve a single user object and include the password field.
-    const user = await User.findOne({ email }).select("+password").lean();
+    // Use findOne to retrieve a single user object and explicitly type it using lean<IUser>()
+    const user = await User.findOne({ email })
+      .select("+password")
+      .lean<IUser>();
+
     if (!user) {
       return res.status(401).json({ error: "Invalid email or password." });
     }
 
     console.log("🔍 Verifying password...");
+    // With the IUser type in place, TypeScript knows that user.password exists.
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ error: "Invalid email or password." });
@@ -51,7 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       { expiresIn: "7d" }
     );
 
-    // Build a secure cookie (with production settings if applicable).
+    // Build a secure cookie (with appropriate options for production).
     const isProduction = process.env.NODE_ENV === "production";
     const cookieParts = [
       `token=${token}`,
@@ -66,7 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Set the token as an HttpOnly cookie.
     res.setHeader("Set-Cookie", cookie);
 
-    // Return the response along with token and user details.
+    // Return the token and basic user details in the response.
     return res.status(200).json({
       message: "Login successful",
       token,
