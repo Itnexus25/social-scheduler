@@ -18,7 +18,7 @@ const adminOnly = (handler: NextApiHandler) => {
   return function (req: AuthenticatedRequest, res: NextApiResponse) {
     // Check for admin privileges.
     if (req.user?.role === "admin") {
-      // If the user is an admin, proceed to the handler.
+      // If the user is an admin, call the wrapped handler.
       return handler(req, res);
     }
     // Otherwise, return a 403 Access Denied error.
