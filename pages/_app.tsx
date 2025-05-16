@@ -1,13 +1,13 @@
-// src/pages/_app.tsx
-
+// pages/_app.tsx
+import React from "react";
 import { ClerkProvider, SignedOut, SignInButton } from "@clerk/nextjs";
 import Head from "next/head";
 import "@/styles/globals.css";
 
-// Use a normal function to wrap all code inside a proper function body.
-function MyApp(props) {
-  // Destructure props (defaults ensure that if these were somehow missing, code won’t error out)
-  const { Component = () => null, pageProps = {} } = props;
+function MyApp(props: { Component: any; pageProps: any; }) {
+  // Destructure Component and pageProps from props.
+  // In Next.js, these are always provided, so no need for fallback values.
+  const { Component, pageProps } = props;
   
   return (
     <ClerkProvider {...pageProps}>
@@ -15,7 +15,6 @@ function MyApp(props) {
         <title>Social Scheduler</title>
         <meta name="description" content="Manage your social posts easily" />
       </Head>
-      {/* Optionally, render a sign-in UI when the user is signed out */}
       <SignedOut>
         <SignInButton />
       </SignedOut>
