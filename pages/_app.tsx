@@ -16,7 +16,7 @@ function MyApp({ Component, pageProps }: AppProps) {
         <title>Social Scheduler</title>
         <meta name="description" content="Manage your social posts easily" />
       </Head>
-      <ClerkProvider>
+      <ClerkProvider {...pageProps}>
         <Component {...pageProps} />
       </ClerkProvider>
     </>
