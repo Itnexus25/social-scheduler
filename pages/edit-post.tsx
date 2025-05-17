@@ -114,7 +114,7 @@ const EditPost: NextPage<EditPostProps> = ({ post }) => {
             <label style={{ display: 'block', marginBottom: '0.5rem' }}>Scheduled At:</label>
             <input
               type="datetime-local"
-              value={new Date(scheduledAt).toISOString().slice(0,16)}
+              value={new Date(scheduledAt).toISOString().slice(0, 16)}
               onChange={(e) =>
                 setScheduledAt(new Date(e.target.value).toISOString())
               }
@@ -168,15 +168,26 @@ const EditPost: NextPage<EditPostProps> = ({ post }) => {
 };
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-  const { id } = context.query;
+  // Ensure that the MONGODB_URI environment variable is set
+  if (!process.env.MONGODB_URI) {
+    console.error("Missing MONGODB_URI in environment variables.");
+    return { notFound: true };
+  }
+
+  // Establish a connection to the database.
   await dbConnect();
+
+  // Get the post ID from the query parameter.
+  const { id } = context.query;
+
+  // Fetch the post from the database.
   const postFromDb = await Post.findById(id).lean();
 
   if (!postFromDb) {
     return { notFound: true };
   }
 
-  // Create a new object for serialized post data
+  // Serialize the post data (convert MongoDB ObjectIDs and Dates to strings).
   const serializedPost = {
     ...postFromDb,
     _id: postFromDb._id.toString(),
