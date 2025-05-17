@@ -168,26 +168,46 @@ const EditPost: NextPage<EditPostProps> = ({ post }) => {
 };
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-  // Ensure that the MONGODB_URI environment variable is set
-  if (!process.env.MONGODB_URI) {
-    console.error("Missing MONGODB_URI in environment variables.");
+  console.log("DEBUG: Starting getServerSideProps for /edit-post");
+
+  // Check for the MongoDB connection string
+  const mongoUri = process.env.MONGODB_URI;
+  if (mongoUri) {
+    console.log("DEBUG: MONGODB_URI is defined.");
+  } else {
+    console.error("DEBUG: MONGODB_URI is NOT defined!");
     return { notFound: true };
   }
 
-  // Establish a connection to the database.
-  await dbConnect();
+  // Attempt to connect to the database
+  try {
+    console.log("DEBUG: Attempting database connection...");
+    await dbConnect();
+    console.log("DEBUG: Successfully connected to the database.");
+  } catch (err) {
+    console.error("DEBUG: Database connection error:", err);
+    return { notFound: true };
+  }
 
-  // Get the post ID from the query parameter.
+  // Get the post ID from the query
   const { id } = context.query;
+  console.log(`DEBUG: Fetching post with id: ${id}`);
 
-  // Fetch the post from the database.
-  const postFromDb = await Post.findById(id).lean();
+  let postFromDb;
+  try {
+    postFromDb = await Post.findById(id).lean();
+    console.log("DEBUG: Post fetched:", postFromDb);
+  } catch (err) {
+    console.error("DEBUG: Error fetching post from the database:", err);
+    return { notFound: true };
+  }
 
   if (!postFromDb) {
+    console.error("DEBUG: No post found with the given id.");
     return { notFound: true };
   }
 
-  // Serialize the post data (convert MongoDB ObjectIDs and Dates to strings).
+  // Serialize post data (making sure to convert object IDs and dates to strings)
   const serializedPost = {
     ...postFromDb,
     _id: postFromDb._id.toString(),
@@ -196,7 +216,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     updatedAt: postFromDb.updatedAt ? postFromDb.updatedAt.toISOString() : "",
   };
 
-  return { props: { post: serializedPost } };
+  console.log("DEBUG: Serialized post:", serializedPost);
+
+  return {
+    props: { post: serializedPost },
+  };
 };
 
 export default EditPost;
